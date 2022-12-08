@@ -31,9 +31,30 @@ title_basics <- read_delim('data/title.basics.tsv', '\t', escape_double = FALSE,
 
 df <- read.csv("the_oscar_award.csv")
 
+movies <- filter(title_basics,titleType == 'movie')
+avg_rating_by_year <- inner_join(title_rate,movies[,c('tconst','startYear')],by = c('tconst' = 'tconst'))
+#avg_rating_by_year$rating_and_votes <- avg_rating_by_year$averageRating * avg_rating_by_year$numVotes
+
+#avg_rating_df <- avg_rating_by_year %>% 
+#  group_by(startYear) %>%
+#  summarise(total_rating_and_votes = sum(rating_and_votes),
+#            total_votes = )
+
+avg_rating_by_year <- filter(avg_rating_by_year,numVotes >= 100)
+
+avg_rating_df <- avg_rating_by_year %>% 
+    group_by(startYear) %>%
+    summarise(averageRating = mean(averageRating))
+names(avg_rating_df) <- c('startYear','yearly_avg_rating')
+
+avg_rating_overall <- mean(avg_rating_by_year$averageRating)
+
+
 actresses <- filter(df,category %in% c('ACTRESS','ACTRESS IN A LEADING ROLE'))
 actresses <- filter(actresses,winner == 'True')
 actresses$oscar <- 1 
+
+
 
 oscar_winners <- unique(actresses$name)
 
@@ -55,8 +76,12 @@ actress_dedup$rn <- ave(actress_dedup$nconst,actress_dedup$primaryName, FUN = se
 actress_dedup <- filter(actress_dedup,rn == 1)
 
 oscar_df <- filter(oscar_df,nconst %in% actress_dedup$nconst)
+oscar_df$age_at_filming <- oscar_df$startYear - oscar_df$birthYear
 oscar_df <- left_join(oscar_df,actresses, c('primaryTitle' = 'film','startYear' = 'year_film','primaryName' = 'name'))
 oscar_df$oscar <- ifelse(is.na(oscar_df$oscar),0,1)
+
+oscar_df <- inner_join(oscar_df,avg_rating_df, by = c('startYear' = 'startYear'))
+oscar_df$overall_avg_rating <- avg_rating_overall
 
 write.csv(oscar_df,"top_100_actresses.csv",row.names = FALSE)
 write.csv(oscar_winning_actresses,"actresses_check.csv",row.names = FALSE)
