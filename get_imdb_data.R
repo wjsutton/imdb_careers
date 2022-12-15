@@ -83,5 +83,34 @@ oscar_df$oscar <- ifelse(is.na(oscar_df$oscar),0,1)
 oscar_df <- inner_join(oscar_df,avg_rating_df, by = c('startYear' = 'startYear'))
 oscar_df$overall_avg_rating <- avg_rating_overall
 
+oscar_df$rating_score <- ifelse(oscar_df$averageRating>=oscar_df$yearly_avg_rating,1,-1)
+
+
+#age_at_filming <- 0:100
+#nconst <- unique(oscar_df$nconst)
+#age_at_filming <- rep(age_at_filming,length(nconst))
+#scaffold <- as.data.frame(cbind(age_at_filming,nconst))
+#scaffold$age_at_filming <- as.integer(scaffold$age_at_filming)
+#oscar_df <- left_join(scaffold,oscar_df, by = c('nconst' = 'nconst', 'age_at_filming' = 'age_at_filming' ))
+
+
+typical_df <- oscar_df[,c("age_at_filming","nconst","oscar","startYear","averageRating","yearly_avg_rating")]
+typical_df$net_rating <- typical_df$averageRating - typical_df$yearly_avg_rating
+typical_df$film <- 1
+
+typical_career <- typical_df %>% 
+  group_by(age_at_filming) %>%
+  summarise(total_net_rating = sum(net_rating),
+            total_actresses = n_distinct(nconst),
+            total_oscars = sum(oscar),
+            total_films = sum(film))
+
+typical_career$avg_net_rating <- typical_career$total_net_rating / 76
+typical_career$avg_films <- typical_career$total_films  / 76
+typical_career$oscar <- typical_career$total_oscars / 76
+
+write.csv(typical_career,"actresses_typical_career.csv",row.names = FALSE)
+
+
 write.csv(oscar_df,"top_100_actresses.csv",row.names = FALSE)
 write.csv(oscar_winning_actresses,"actresses_check.csv",row.names = FALSE)
